@@ -1,0 +1,7 @@
+{
+    "warehouse": "bigquery",
+    "defaultSchema": "dataform_production",
+    "assertionSchema": "dataform_assertions",
+    "defaultDatabase": "teacher-success",
+    "defaultLocation": "europe-west2"
+}
