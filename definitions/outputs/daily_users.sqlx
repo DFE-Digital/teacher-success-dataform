@@ -1,0 +1,189 @@
+config {
+    type: "incremental",
+    assertions: {
+        uniqueKeys: [
+            ["anonymised_user_agent_and_ip", "date"]
+        ]
+    },
+    bigquery: {
+        partitionBy: "date"
+    },
+    description: "Records of users for each day, covering all activity by each user on that day. Users are defined as traffic from the same IP address and device that day.",
+    columns: {}
+}
+
+WITH
+  pageview AS (
+  SELECT
+    DATE(occurred_at) AS date,
+    TIME(occurred_at) AS time,
+    occurred_at,
+    request_path,
+    request_referer,
+    request_user_agent,
+    request_query,
+    NULLIF( (
+      SELECT
+        STRING_AGG( CONCAT( KEY, "=", ARRAY_TO_STRING(value, "&") ) )
+      FROM
+        UNNEST(request_query)
+      WHERE
+        ARRAY_LENGTH(value) > 0 ), "" ) AS request_query_concat,
+    response_content_type,
+    anonymised_user_agent_and_ip,
+    request_user_id,
+    jobseeker_id,
+    publisher_id,
+    support_user_id,
+    device_category,
+    browser_name,
+    browser_version,
+    operating_system_vendor,
+    operating_system_name,
+    operating_system_version,
+    ${data_functions.eventDataExtract("request_query", "utm_campaign")} AS utm_campaign
+  FROM
+    ${ref("events_ts")} AS events
+  WHERE
+    event_type = "web_request"
+    AND ( response_content_type LIKE "%text/html%"
+      OR ( response_content_type IS NULL
+        AND request_path LIKE "%interests/new%" ) )
+    AND anonymised_user_agent_and_ip IS NOT NULL
+    AND DATE(occurred_at) <= CURRENT_DATE - 1
+    AND DATE(occurred_at) > event_date_checkpoint ),
+  anonymised_user_daily_first_pageview AS (
+  SELECT
+    DISTINCT anonymised_user_agent_and_ip,
+    date,
+    FIRST_VALUE(STRUCT( time,
+        occurred_at,
+        request_referer,
+        request_path,
+        request_query_concat,
+        device_category,
+        request_user_agent,
+        ${data_functions.eventDataExtract("request_query", "utm_source")} AS utm_source,
+        ${data_functions.eventDataExtract("request_query", "utm_campaign")} AS utm_campaign,
+        ${data_functions.eventDataExtract("request_query", "utm_medium")} AS utm_medium,
+        ${data_functions.eventDataExtract("request_query", "utm_content")} AS utm_content,
+        ${data_functions.eventDataExtract("request_query", "gclid")} AS google_click_id,
+        ${data_functions.eventDataExtract("request_query", "gclsrc")} AS google_click_source,
+        browser_name,
+        browser_version,
+        operating_system_vendor,
+        operating_system_name,
+        operating_system_version )) OVER pageviews_for_this_user_on_this_date AS first_pageview,
+    TIME_DIFF( LAST_VALUE(time) OVER pageviews_for_this_user_on_this_date, FIRST_VALUE(time) OVER pageviews_for_this_user_on_this_date, SECOND ) AS seconds_on_site
+  FROM
+    pageview
+  WINDOW
+    pageviews_for_this_user_on_this_date AS (
+    PARTITION BY
+      anonymised_user_agent_and_ip,
+      date
+    ORDER BY
+      time ROWS BETWEEN UNBOUNDED PRECEDING
+      AND UNBOUNDED FOLLOWING ) ),
+  anonymised_user_on_date AS (
+  SELECT
+    date,
+    MIN(time) AS time,
+    anonymised_user_agent_and_ip,
+    COUNT( DISTINCT CONCAT( request_path, IFNULL(request_query_concat, "") ) ) AS number_of_unique_pageviews
+  FROM
+    pageview
+  GROUP BY
+    date,
+    anonymised_user_agent_and_ip ),
+  anonymised_user AS (
+  SELECT
+    anonymised_user_agent_and_ip,
+    MIN(DATE(occurred_at)) AS date_first_seen
+  FROM
+    ${ref("events_ts")} AS past_user
+  WHERE
+    DATE(past_user.occurred_at) >= DATE_SUB(event_date_checkpoint, INTERVAL 1 YEAR)
+    AND event_type = "web_request"
+  GROUP BY
+    anonymised_user_agent_and_ip ),
+  anonymised_user_with_first_visit_date AS (
+  SELECT
+    anonymised_user.anonymised_user_agent_and_ip,
+    MIN(date_first_seen) AS date_first_seen
+  FROM
+    anonymised_user
+  CROSS JOIN
+    UNNEST( [anonymised_user.date_first_seen, publisher.date_first_seen, jobseeker.date_first_seen, support_user.date_first_seen] ) AS date_first_seen
+  GROUP BY
+    anonymised_user.anonymised_user_agent_and_ip ),
+  anonymised_user_on_date_with_first_page_details AS (
+  SELECT
+    anonymised_user_on_date.date,
+    anonymised_user_daily_first_pageview.first_pageview.time,
+    anonymised_user_daily_first_pageview.first_pageview.occurred_at AS arrived_at,
+    anonymised_user_on_date.number_of_unique_pageviews,
+    anonymised_user_on_date.number_of_unique_pageviews <= 1 AS bounced,
+    anonymised_user_daily_first_pageview.first_pageview.device_category,
+    anonymised_user_on_date.anonymised_user_agent_and_ip,
+    IFNULL(anonymised_user_with_first_visit_date.date_first_seen, u.date) AS date_first_seen,
+    anonymised_user_daily_first_pageview.first_pageview.utm_source,
+    anonymised_user_daily_first_pageview.first_pageview.utm_campaign,
+    anonymised_user_daily_first_pageview.first_pageview.utm_medium,
+    anonymised_user_daily_first_pageview.first_pageview.utm_content,
+    anonymised_user_daily_first_pageview.first_pageview.google_click_id,
+    anonymised_user_daily_first_pageview.first_pageview.google_click_source,
+    NULLIF(anonymised_user_daily_first_pageview.first_pageview.request_referer, "-") AS referrer,
+    anonymised_user_daily_first_pageview.first_pageview.request_path AS landing_page_stem,
+    anonymised_user_daily_first_pageview.first_pageview.request_query_concat AS landing_page_query,
+    anonymised_user_daily_first_pageview.first_pageview.request_user_agent,
+    seconds_on_site,
+    FIRST_VALUE(`teacher_success.dataform_production.parse_user_agent`(anonymised_user_daily_first_pageview.first_pageview.request_user_agent).category) OVER(PARTITION BY u.anonymised_user_agent_and_ip, anonymised_user_on_date.date) AS user_agent_category,
+    anonymised_user_daily_first_pageview.first_pageview.browser_name AS browser,
+    anonymised_user_daily_first_pageview.first_pageview.browser_version,
+    anonymised_user_daily_first_pageview.first_pageview.operating_system_vendor AS browser_vendor,
+    anonymised_user_daily_first_pageview.first_pageview.operating_system_name AS operating_system,
+    anonymised_user_daily_first_pageview.first_pageview.operating_system_version
+  FROM
+    anonymised_user_on_date
+  LEFT JOIN
+    anonymised_user_with_first_visit_date
+  USING
+    (anonymised_user_agent_and_ip)
+  LEFT JOIN
+    anonymised_user_daily_first_pageview
+  USING
+    (date,
+      anonymised_user_agent_and_ip) )
+SELECT
+  *,
+  `teacher_success.dataform_production.categorise_traffic_by_medium`( utm_campaign,
+    utm_medium,
+    utm_source,
+    google_click_id,
+    google_click_source,
+    referrer,
+    landing_page_stem ) AS medium,
+  CASE
+    WHEN date_first_seen < date THEN 'returning'
+    WHEN date_first_seen = date THEN 'new'
+END
+  AS new_or_returning,
+  date_first_seen = date AS new_user,
+  date_first_seen < date AS returning_user
+FROM
+  anonymised_user_on_date_with_first_page_details;
+  -- Pre-operations for incremental loads
+
+pre_operations {
+  DECLARE
+    event_date_checkpoint DEFAULT (
+    ${
+        when(
+            incremental(),
+            `SELECT MAX(date) FROM ${self()}`,
+            `SELECT DATE("2025-08-21")`
+        )
+    }
+    );
+}

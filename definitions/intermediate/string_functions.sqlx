@@ -1,0 +1,47 @@
+/*
+  Contains useful string processing functions that can be reused across multiple scheduled queries and views in BigQuery.
+  This script must be run in BigQuery for these functions to become available,
+  and re - run to overwrite the available functions with any new version.
+  Dataform handles this automatically as an operation, updating these each night.
+  The dependencies sqlx configuration option can be used to ensure that queries which use these UDFs wait for this script to finish executing successfully first.
+  */
+CREATE OR REPLACE FUNCTION
+  `teacher-success.dataform_production.categorise_traffic_by_medium`( utm_campaign STRING,
+    utm_medium STRING,
+    utm_source STRING,
+    google_click_id STRING,
+    google_click_source STRING,
+    referrer STRING )
+  RETURNS STRING OPTIONS (description = "Categorise traffic into GA-style mediums, prioritising UTMs over inferred source") AS (
+    CASE
+    -- 1. Explicit campaign tagging (UTMs, GCLID)
+      WHEN google_click_id IS NOT NULL THEN "PPC"
+      WHEN REGEXP_CONTAINS(utm_medium, "(?i)email") THEN "Email"
+      WHEN REGEXP_CONTAINS(utm_medium, "(?i)(display|cpm|banner)") THEN "Display"
+      WHEN REGEXP_CONTAINS(utm_medium, "(?i)(paidsocial)") THEN "Paid Social"
+      WHEN REGEXP_CONTAINS(utm_medium, "(?i)(affiliate)") THEN "Affiliate"
+      WHEN utm_medium = "referral" THEN "Referral"
+      WHEN utm_medium = "organic" THEN "Organic"
+      -- 2. Referrer-based inference
+      -- Social traffic (inferred from referrer)
+      WHEN REGEXP_CONTAINS(referrer, "(?i)(facebook|twitter|t\\.co|linkedin|youtube|instagram|x\\.co|tiktok|pinterest|reddit|snapchat|threads)") THEN "Social"
+      -- Organic search traffic (inferred from referrer or utm_medium)
+      WHEN REGEXP_CONTAINS(referrer, "(?i)(google|bing|yahoo|aol|ask\\.co|baidu|duckduckgo|ecosia)") THEN "Organic"
+      WHEN referrer IS NOT NULL
+    AND NOT REGEXP_CONTAINS(referrer, "(teaching-jobs.service.gov.uk)") THEN "Referral"
+    -- 3. Special internal redirect case
+      WHEN REGEXP_CONTAINS(referrer, "(?i)(teach.education.gov.uk)") THEN "Site opened on earlier date"
+      -- 4. Fallback
+      ELSE "Direct or unknown"
+  END
+    );
+CREATE OR REPLACE FUNCTION
+  `teacher-vacancy-service.production_dataset.parse_user_agent`(user_agent STRING)
+  RETURNS STRUCT < category STRING,
+  name STRING,
+  version STRING,
+  os STRING,
+  vendor STRING,
+  os_version STRING >
+  LANGUAGE js AS "return {category:woothee.parse(user_agent).category,name:woothee.parse(user_agent).name,version:woothee.parse(user_agent).version,os:woothee.parse(user_agent).os,vendor:woothee.parse(user_agent).vendor,os_version:woothee.parse(user_agent).os_version};" OPTIONS( library = "https://storage.cloud.google.com/teacher-vacancy-service-scripts/woothee.js",
+    description = "Uses the Woothee Javascript library to categorise user agents by user category (PC i.e. desktop, smartphone, mobile phone, crawler, applicance, unknown or misc), browser name, browser version, operating system, browser vendor and operating system version. To function correctly this script needs to be stored in Google Cloud Storage at this location and accessible to this script. The latest version of this script can be found at https://github.com/woothee/woothee-js/blob/master/release/woothee.js ." );
