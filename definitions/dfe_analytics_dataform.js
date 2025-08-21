@@ -10,7 +10,7 @@ dfeAnalyticsDataform({
     urlRegex: "teach.education.gov.uk", // re-2 formatted regular expression to use to identify whether a URL is this service's own URL or an external one. If your service only has one domain name set this to 'www.yourdomainname.gov.uk' (without the protocol). If you have more than one use something like '(?i)(www.domain1.gov.uk|www.domain2.gov.uk|www.domain3.gov.uk)'
     dataSchema: [{
             entityTableName: "page_feedbacks",
-            description: "",
+            description: "Description of this table to include in metadata here.",
             keys: [{
                 keyName: "useful",
                 dataType: "string",
@@ -55,5 +55,22 @@ dfeAnalyticsDataform({
                 description: "Description of this field to include in metadata here."
             }]
         }
-    ]
+    ],
+    customEventSchema: [{
+        eventType: "tracked_link_clicked",
+        description: "Description of this table to include in metadata here.",
+        keys: [{
+            keyName: "text",
+            dataType: "string",
+            description: "Description of this field to include in metadata here."
+        }, {
+            keyName: "href",
+            dataType: "string",
+            description: "Description of this field to include in metadata here."
+        }, {
+            keyName: "mousebutton",
+            dataType: "string",
+            description: "Description of this field to include in metadata here."
+        }]
+    }]
 });
