@@ -133,7 +133,7 @@ WITH
     anonymised_user_daily_first_pageview.first_pageview.request_query_concat AS landing_page_query,
     anonymised_user_daily_first_pageview.first_pageview.request_user_agent,
     seconds_on_site,
-    FIRST_VALUE(`teacher-success.dataform_production.parse_user_agent`(anonymised_user_daily_first_pageview.first_pageview.request_user_agent).category) OVER(PARTITION BY anonymised_user_on_date.anonymised_user_agent_and_ip, anonymised_user_on_date.date) AS user_agent_category,
+    `teacher-success.dataform_production.parse_user_agent`( anonymised_user_daily_first_pageview.first_pageview.request_user_agent ).category AS user_agent_category,
     anonymised_user_daily_first_pageview.first_pageview.browser_name AS browser,
     anonymised_user_daily_first_pageview.first_pageview.browser_version,
     anonymised_user_daily_first_pageview.first_pageview.operating_system_vendor AS browser_vendor,
