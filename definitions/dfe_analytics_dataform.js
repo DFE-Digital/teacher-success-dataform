@@ -43,7 +43,8 @@ dfeAnalyticsDataform({
             }, {
                 keyName: "email",
                 dataType: "string",
-                description: "Description of this field to include in metadata here."
+                description: "Description of this field to include in metadata here.",
+                hidden: true
             }, {
                 keyName: "topic",
                 dataType: "string",
