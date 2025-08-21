@@ -36,7 +36,7 @@ CREATE OR REPLACE FUNCTION
   END
     );
 CREATE OR REPLACE FUNCTION
-  `teacher-vacancy-service.production_dataset.parse_user_agent`(user_agent STRING)
+  `teacher-success.dataform_production.parse_user_agent`(user_agent STRING)
   RETURNS STRUCT < category STRING,
   name STRING,
   version STRING,
