@@ -32,9 +32,6 @@ WITH
     response_content_type,
     anonymised_user_agent_and_ip,
     request_user_id,
-    jobseeker_id,
-    publisher_id,
-    support_user_id,
     device_category,
     browser_name,
     browser_version,
@@ -113,8 +110,6 @@ WITH
     MIN(date_first_seen) AS date_first_seen
   FROM
     anonymised_user
-  CROSS JOIN
-    UNNEST( [anonymised_user.date_first_seen, publisher.date_first_seen, jobseeker.date_first_seen, support_user.date_first_seen] ) AS date_first_seen
   GROUP BY
     anonymised_user.anonymised_user_agent_and_ip ),
   anonymised_user_on_date_with_first_page_details AS (
