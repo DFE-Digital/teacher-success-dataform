@@ -157,8 +157,7 @@ SELECT
     utm_source,
     google_click_id,
     google_click_source,
-    referrer,
-    landing_page_stem ) AS medium,
+    referrer) AS medium,
   CASE
     WHEN date_first_seen < date THEN 'returning'
     WHEN date_first_seen = date THEN 'new'
