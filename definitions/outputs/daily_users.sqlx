@@ -121,7 +121,7 @@ WITH
     anonymised_user_on_date.number_of_unique_pageviews <= 1 AS bounced,
     anonymised_user_daily_first_pageview.first_pageview.device_category,
     anonymised_user_on_date.anonymised_user_agent_and_ip,
-    IFNULL(anonymised_user_with_first_visit_date.date_first_seen, u.date) AS date_first_seen,
+    IFNULL(anonymised_user_with_first_visit_date.date_first_seen, anonymised_user_on_date.date) AS date_first_seen,
     anonymised_user_daily_first_pageview.first_pageview.utm_source,
     anonymised_user_daily_first_pageview.first_pageview.utm_campaign,
     anonymised_user_daily_first_pageview.first_pageview.utm_medium,
