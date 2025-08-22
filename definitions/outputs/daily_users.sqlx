@@ -176,7 +176,7 @@ pre_operations {
         when(
             incremental(),
             `SELECT MAX(date) FROM ${self()}`,
-            `SELECT DATE("2025-08-21")`
+            `SELECT DATE("2025-08-20")`
         )
     }
     );
