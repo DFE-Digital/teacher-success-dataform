@@ -167,6 +167,7 @@ END
   date_first_seen < date AS returning_user
 FROM
   anonymised_user_on_date_with_first_page_details
+  WHERE device_category != "bot"
   -- Pre-operations for incremental loads
 
 pre_operations {
