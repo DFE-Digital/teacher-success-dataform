@@ -43,5 +43,5 @@ CREATE OR REPLACE FUNCTION
   os STRING,
   vendor STRING,
   os_version STRING >
-  LANGUAGE js AS "return {category:woothee.parse(user_agent).category,name:woothee.parse(user_agent).name,version:woothee.parse(user_agent).version,os:woothee.parse(user_agent).os,vendor:woothee.parse(user_agent).vendor,os_version:woothee.parse(user_agent).os_version};" OPTIONS( library = "https://storage.cloud.google.com/teacher-vacancy-service-scripts/woothee.js",
+  LANGUAGE js AS "return {category:woothee.parse(user_agent).category,name:woothee.parse(user_agent).name,version:woothee.parse(user_agent).version,os:woothee.parse(user_agent).os,vendor:woothee.parse(user_agent).vendor,os_version:woothee.parse(user_agent).os_version};" OPTIONS( library = "https://storage.cloud.google.com/teacher-success-scripts/woothee.js",
     description = "Uses the Woothee Javascript library to categorise user agents by user category (PC i.e. desktop, smartphone, mobile phone, crawler, applicance, unknown or misc), browser name, browser version, operating system, browser vendor and operating system version. To function correctly this script needs to be stored in Google Cloud Storage at this location and accessible to this script. The latest version of this script can be found at https://github.com/woothee/woothee-js/blob/master/release/woothee.js ." );
