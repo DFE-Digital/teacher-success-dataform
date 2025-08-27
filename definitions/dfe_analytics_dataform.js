@@ -5,6 +5,7 @@ dfeAnalyticsDataform({
     eventSourceName: "ts",
     bqDatasetName: "events_production",
     bqEventsTableName: "events",
+    enableMonitoring: false,
     expirationDays: false, // replace with the integer number of days you want to delete data in your BigQuery project after, or leave as false if you don't want to enforce a project-wide data retention schedule
     hiddenPolicyTagLocation: "projects/teacher-success/locations/europe-west2/taxonomies/3510957124238755356/policyTags/6237998071130948217",
     urlRegex: "teach.education.gov.uk", // re-2 formatted regular expression to use to identify whether a URL is this service's own URL or an external one. If your service only has one domain name set this to 'www.yourdomainname.gov.uk' (without the protocol). If you have more than one use something like '(?i)(www.domain1.gov.uk|www.domain2.gov.uk|www.domain3.gov.uk)'
