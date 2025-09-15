@@ -9,7 +9,38 @@ config {
         partitionBy: "date"
     },
     description: "Records of users for each day, covering all activity by each user on that day. Users are defined as traffic from the same IP address and device that day.",
-    columns: {}
+    columns: {
+        anonymised_user_agent_and_ip: "Hash-anonymised version of a combination of the user's IP address and device/browser. This defines a user for the purposes of this table, so this will be unique on each date. Daily users from multiple dates may share a anonymised_user_agent_and_ip if they share an IP address and device/browser.",
+        arrived_at: "The timestamp at which this user first visited the site on this date.",
+        bounced: "TRUE if the user viewed only one page with content-type text/html",
+        browser: "Name of browser according to Woothee Javascript library",
+        browser_vendor: "Vendor of browser according to Woothee Javascript library",
+        browser_version: "Version of browser according to Woothee Javascript library",
+        date: "The date on which this user visited the site.",
+        date_first_seen: "Date this daily user was first seen - not the same as date field if this user is a returning user.",
+        device_category: "mobile, desktop or unknown",
+        google_click_id: "UID for the PPC click that led this user to the site on this date. Should join up with Google Ads data.",
+        google_click_source: "Source categorisation for the PPC click that led this user to the site on this date e.g. aw.ds for Google Ads.",
+        landing_page_query: "The query parameters we received from the user the first time they viewed a page on this date.",
+        landing_page_stem: "The stem (e.g. /) of the page the user viewed first on this date.",
+        medium: "Our categorisation of where the user came from the first time they viewed a page on this date.",
+        new_or_returning: "new if date_first_seen=today; returning if date_first_seen was before today.",
+        new_user: "TRUE if new_or_returning is new",
+        number_of_unique_pageviews: "The total number of pages with different URLs this user viewed on this date.",
+        operating_system: "Name of operating system according to Woothee Javascript library",
+        operating_system_version: "Version of operating system according to Woothee Javascript library",
+        referrer: "The URL of the site that referred this user to Teaching Vacancies the first time we saw them on this date (if there was one).",
+        request_user_agent: "Description of the user's device, browser & OS provided by the user's browser.",
+        returning_user: "TRUE if new_or_returning is returning",
+        seconds_on_site: "The difference between the first and last HTML pageviews on the site this day for this user.",
+        time: "The time at which this user first visited the site on this date.",
+        user_agent_category: "Category of user according to Woothee Javascript library - either PC (desktop), crawler, smartphone, mobile phone, appliance, misc or unknown",
+        utm_campaign: "Value of the first utm_campaign parameter set for this user on this date.",
+        utm_content: "Value of the first utm_content parameter set for this user on this date.",
+        utm_medium: "Value of the first utm_medium parameter set for this user on this date.",
+        utm_source: "Value of the first utm_source parameter set for this user on this date.",
+    }
+
 }
 
 WITH
@@ -167,7 +198,8 @@ END
   date_first_seen < date AS returning_user
 FROM
   anonymised_user_on_date_with_first_page_details
-  WHERE device_category != "bot"
+WHERE
+  device_category != "bot"
   -- Pre-operations for incremental loads
 
 pre_operations {
