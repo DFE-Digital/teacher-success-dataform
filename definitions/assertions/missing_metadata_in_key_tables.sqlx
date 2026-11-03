@@ -16,7 +16,7 @@ SELECT
 FROM
   ${
       dataform.projectConfig.schemaSuffix ?
-          `\`${dataform.projectConfig.defaultDatabase}.dataform_${dataform.projectConfig.schemaSuffix}.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS\`` :
+          `\`${dataform.projectConfig.defaultDatabase}.dataform_production_${dataform.projectConfig.schemaSuffix}.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS\`` :
           `\`${dataform.projectConfig.defaultDatabase}.1_key_tables.INFORMATION_SCHEMA.COLUMN_FIELD_PATHS\``
   }
   AS dev_branch
